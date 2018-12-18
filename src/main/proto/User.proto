@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.example.user";
+option java_outer_classname = "UserProto";
+option objc_class_prefix = "PRO";
+
+package user;
+
+service UserService {
+	rpc Upsert (User) returns (GenericResponse) {}
+	rpc Get (GetUserRequest) returns (User) {}
+}
+
+message GenericResponse {
+	int32 status = 1;
+	string description = 2;
+}
+
+message GetUserRequest {
+	string id = 1;
+}
+
+message User {
+	string id = 1;
+	string email = 2;
+	string first_name = 3;
+	string last_name = 4;
+	string password_hash = 5;
+	string title = 6;
+	bool is_archived = 7;
+}
