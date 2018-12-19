@@ -4,14 +4,16 @@ import java.io.IOException;
 import java.util.logging.Logger;
 
 import com.example.StandardUserMessage;
+import com.example.dao.UserDao;
 import com.example.exceptions.MessageValidationException;
-import com.example.storage.LocalStorage;
 import com.example.user.GenericResponse;
 import com.example.user.User;
 import com.example.user.UserServiceGrpc;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 
 public class GrpcServer {
 	private static final Logger logger = Logger.getLogger(GrpcServer.class.getName());
@@ -66,28 +68,38 @@ public class GrpcServer {
 	 *
 	 */
 	static class UserServiceImpl extends UserServiceGrpc.UserServiceImplBase {
+
 		@Override
-		public void upsert(com.example.user.User request,
-				io.grpc.stub.StreamObserver<com.example.user.GenericResponse> responseObserver) {
+		public void get(com.example.user.GetUserRequest request,
+				io.grpc.stub.StreamObserver<com.example.user.User> responseObserver) {
 			try {
-				LocalStorage.write(new StandardUserMessage(request));
-				responseObserver.onNext(
-						GenericResponse.newBuilder().setDescription("Upsert Successful").setStatus(200).build());
-			} catch (MessageValidationException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				responseObserver
-						.onNext(GenericResponse.newBuilder().setDescription("Upsert Failed!").setStatus(500).build());
+				User user = UserDao.getUser(request.getId(), null);
+				if (user == null) {
+					throw new StatusRuntimeException(Status.NOT_FOUND);
+				}
+				responseObserver.onNext(user);
+			} catch (StatusRuntimeException e) {
+				responseObserver.onError(e);
 			}
 			responseObserver.onCompleted();
 		}
 
 		@Override
-		public void get(com.example.user.GetUserRequest request,
-				io.grpc.stub.StreamObserver<com.example.user.User> responseObserver) {
-			StandardUserMessage msg = LocalStorage.read(StandardUserMessage.class, User.newBuilder(), request.getId(),
-					null);
-			responseObserver.onNext(msg == null ? User.getDefaultInstance() : msg.getMessage());
+		public void upsert(com.example.user.User request,
+				io.grpc.stub.StreamObserver<com.example.user.GenericResponse> responseObserver) {
+			try {
+				if (UserDao.upsert(new StandardUserMessage(request))) {
+					responseObserver.onNext(
+							GenericResponse.newBuilder().setDescription("Upsert Successful").setStatus(200).build());
+				} else {
+					throw new StatusRuntimeException(Status.INVALID_ARGUMENT);
+				}
+
+			} catch (MessageValidationException e) {
+				responseObserver.onError(e);
+			} catch (StatusRuntimeException e) {
+				responseObserver.onError(e);
+			}
 			responseObserver.onCompleted();
 		}
 	}

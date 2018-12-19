@@ -8,6 +8,8 @@ import com.example.user.GenericResponse;
 import com.example.user.GetUserRequest;
 import com.example.user.User;
 import com.example.user.UserServiceGrpc;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.util.JsonFormat;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -45,28 +47,25 @@ public class GrpcClient {
 		channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
 	}
 
-	public GenericResponse upsert(User request) {
-		GenericResponse response;
+	public GenericResponse upsert(User request, GenericResponse default_value) {
 		try {
-			response = blockingStub.upsert(request);
+			return blockingStub.upsert(request);
 		} catch (StatusRuntimeException e) {
 			logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-			return GenericResponse.newBuilder().setDescription("FAILURE!!!!!").setStatus(500).build();
 		}
-		logger.info("GenericResponse: " + response.toString());
-		return response;
+
+		return default_value;
 	}
 
 	public User get(GetUserRequest request, User default_value) {
-		User user;
+
 		try {
-			user = blockingStub.get(request);
+			return blockingStub.get(request);
 		} catch (StatusRuntimeException e) {
 			logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-			return default_value;
 		}
-		logger.info("User " + user.toString());
-		return user;
+
+		return default_value;
 	}
 
 }
