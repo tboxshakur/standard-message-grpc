@@ -6,7 +6,6 @@ import java.util.logging.Logger;
 import com.example.StandardUserMessage;
 import com.example.dao.UserDao;
 import com.example.exceptions.MessageValidationException;
-import com.example.user.GenericResponse;
 import com.example.user.User;
 import com.example.user.UserServiceGrpc;
 
@@ -75,32 +74,37 @@ public class GrpcServer {
 			try {
 				User user = UserDao.getUser(request.getId(), null);
 				if (user == null) {
-					throw new StatusRuntimeException(Status.NOT_FOUND);
+					throw new StatusRuntimeException(
+							Status.NOT_FOUND.withDescription(String.format("User %s not found!", request.getId())));
 				}
 				responseObserver.onNext(user);
+				responseObserver.onCompleted();
 			} catch (StatusRuntimeException e) {
 				responseObserver.onError(e);
 			}
-			responseObserver.onCompleted();
 		}
 
 		@Override
 		public void upsert(com.example.user.User request,
-				io.grpc.stub.StreamObserver<com.example.user.GenericResponse> responseObserver) {
+				io.grpc.stub.StreamObserver<com.example.user.User> responseObserver) {
 			try {
-				if (UserDao.upsert(new StandardUserMessage(request))) {
-					responseObserver.onNext(
-							GenericResponse.newBuilder().setDescription("Upsert Successful").setStatus(200).build());
+
+				StandardUserMessage my_wrapped_message_with_validation = new StandardUserMessage(request);
+
+				if (UserDao.upsert(my_wrapped_message_with_validation)) {
+					responseObserver.onNext(my_wrapped_message_with_validation.getMessage());
+					responseObserver.onCompleted();
 				} else {
-					throw new StatusRuntimeException(Status.INVALID_ARGUMENT);
+					throw new StatusRuntimeException(
+							Status.UNKNOWN.withDescription("Upsert operation failed miserably and we don't know why!"));
 				}
 
 			} catch (MessageValidationException e) {
-				responseObserver.onError(e);
+				responseObserver.onError(new StatusRuntimeException(
+						Status.INVALID_ARGUMENT.withDescription(e.getMessage()).withCause(e)));
 			} catch (StatusRuntimeException e) {
 				responseObserver.onError(e);
 			}
-			responseObserver.onCompleted();
 		}
 	}
 }

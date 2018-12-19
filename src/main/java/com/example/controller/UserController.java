@@ -6,11 +6,12 @@ import com.example.StandardUserMessage;
 import com.example.dao.UserDao;
 import com.example.exceptions.MessageValidationException;
 import com.example.grpc.GrpcClient;
-import com.example.user.GenericResponse;
 import com.example.user.GetUserRequest;
 import com.example.user.User;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
+
+import io.grpc.StatusRuntimeException;
 
 import java.io.IOException;
 import java.util.logging.Logger;
@@ -54,14 +55,62 @@ public class UserController {
 	 */
 	@GetMapping("/grpc/user/{id}")
 	public String getUserGrpc(@PathVariable String id) throws InvalidProtocolBufferException {
-		User user = GrpcClient.getSingleton().get(GetUserRequest.newBuilder().setId(id).build(), null);
+		try {
+			return JsonFormat.printer()
+					.print(GrpcClient.getSingleton().get(GetUserRequest.newBuilder().setId(id).build()));
+		} catch (StatusRuntimeException e) {
+			throw new IllegalArgumentException(e.getStatus().getDescription());
+		}
+	}
 
-		if (user == null) {
-			throw new IllegalArgumentException(String.format("User %s not found", id));
+	/**
+	 * Upserts a User
+	 * 
+	 * @param json
+	 * @return simple json representation of the GenericResponse protobuf
+	 * @throws IOException
+	 * @throws MessageValidationException
+	 * @throws UpsertFailedException
+	 */
+	@PostMapping("/user")
+	public String upsert(@RequestBody String json)
+			throws IOException, MessageValidationException, UpsertFailedException {
+		User.Builder user_builder = User.newBuilder();
+		JsonFormat.parser().merge(json, user_builder);
+
+		try {
+			StandardUserMessage my_wrapped_message_with_validation = new StandardUserMessage(user_builder.build());
+			if (UserDao.upsert(my_wrapped_message_with_validation)) {
+				return JsonFormat.printer().print(my_wrapped_message_with_validation.getMessage());
+			} else {
+				throw new UpsertFailedException("Upsert failed");
+			}
+		} catch (MessageValidationException e) {
+			throw new UpsertFailedException(e.getMessage());
 		}
 
-		return JsonFormat.printer().print(user);
+	}
 
+	/**
+	 * Upserts a User whilst using grpc
+	 * 
+	 * @param json
+	 * @return simple json representation of the GenericResponse protobuf
+	 * @throws IOException
+	 * @throws MessageValidationException
+	 * @throws UpsertFailedException
+	 */
+	@PostMapping("/grpc/user")
+	public String upsertGrpc(@RequestBody String json)
+			throws IOException, MessageValidationException, UpsertFailedException {
+		User.Builder user_builder = User.newBuilder();
+		JsonFormat.parser().merge(json, user_builder);
+
+		try {
+			return JsonFormat.printer().print(GrpcClient.getSingleton().upsert(user_builder.build()));
+		} catch (StatusRuntimeException e) {
+			throw new UpsertFailedException(e.getStatus().getDescription());
+		}
 	}
 
 	@ExceptionHandler
@@ -84,57 +133,4 @@ public class UserController {
 	void handleUpsertFailedException(UpsertFailedException e, HttpServletResponse response) throws IOException {
 		response.sendError(HttpStatus.BAD_REQUEST.value());
 	}
-
-	/**
-	 * Upserts a User
-	 * 
-	 * @param json
-	 * @return simple json representation of the GenericResponse protobuf
-	 * @throws IOException
-	 * @throws MessageValidationException
-	 * @throws UpsertFailedException
-	 */
-	@PostMapping("/user")
-	public String upsert(@RequestBody String json)
-			throws IOException, MessageValidationException, UpsertFailedException {
-		User.Builder user_builder = User.newBuilder();
-		JsonFormat.parser().merge(json, user_builder);
-
-		try {
-			if (UserDao.upsert(new StandardUserMessage(user_builder.build()))) {
-				return JsonFormat.printer()
-						.print(GenericResponse.newBuilder().setDescription("Upsert Successful").setStatus(200).build());
-			} else {
-				throw new UpsertFailedException("Upsert failed");
-			}
-		} catch (MessageValidationException e) {
-			throw new UpsertFailedException("I hate your JSON data");
-		}
-
-	}
-
-	/**
-	 * Upserts a User whilst using grpc
-	 * 
-	 * @param json
-	 * @return simple json representation of the GenericResponse protobuf
-	 * @throws IOException
-	 * @throws MessageValidationException
-	 * @throws UpsertFailedException
-	 */
-	@PostMapping("/grpc/user")
-	public String upsertGrpc(@RequestBody String json)
-			throws IOException, MessageValidationException, UpsertFailedException {
-		User.Builder user_builder = User.newBuilder();
-		JsonFormat.parser().merge(json, user_builder);
-
-		GenericResponse response = GrpcClient.getSingleton().upsert(user_builder.build(), null);
-
-		if (response == null) {
-			throw new UpsertFailedException("I hate your JSON data");
-		}
-
-		return JsonFormat.printer().print(response);
-	}
-
 }

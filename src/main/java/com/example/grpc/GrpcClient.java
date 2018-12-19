@@ -1,16 +1,11 @@
 package com.example.grpc;
 
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.example.user.GenericResponse;
 import com.example.user.GetUserRequest;
 import com.example.user.User;
 import com.example.user.UserServiceGrpc;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.util.JsonFormat;
-
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
@@ -47,25 +42,12 @@ public class GrpcClient {
 		channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
 	}
 
-	public GenericResponse upsert(User request, GenericResponse default_value) {
-		try {
-			return blockingStub.upsert(request);
-		} catch (StatusRuntimeException e) {
-			logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-		}
-
-		return default_value;
+	public User upsert(User request) throws StatusRuntimeException {
+		return blockingStub.upsert(request);
 	}
 
-	public User get(GetUserRequest request, User default_value) {
-
-		try {
-			return blockingStub.get(request);
-		} catch (StatusRuntimeException e) {
-			logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-		}
-
-		return default_value;
+	public User get(GetUserRequest request) throws StatusRuntimeException {
+		return blockingStub.get(request);
 	}
 
 }
