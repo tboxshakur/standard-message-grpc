@@ -18,9 +18,16 @@ public class StandardUserMessage extends StandardMessage<User> {
 
 	private static final Logger logger = Logger.getLogger(StandardUserMessage.class.getName());
 
+	private String email;
+
 	public StandardUserMessage(User message) throws MessageValidationException {
 		super(message);
+		this.email = message.getEmail();
 		// TODO Auto-generated constructor stub
+	}
+
+	public String getEmail() {
+		return email;
 	}
 
 	@Override

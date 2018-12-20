@@ -3,7 +3,7 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	
+
 	<groupId>tboxshakur</groupId>
 	<artifactId>standard-message-grpc</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
@@ -24,6 +24,8 @@
 		<!-- required for jdk9 -->
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
+		<!-- swagger -->
+		<springfox-swagger.version>2.9.2</springfox-swagger.version>
 	</properties>
 
 	<dependencies>
@@ -44,13 +46,13 @@
 			<scope>test</scope>
 		</dependency>
 		<!-- end::tests[] -->
-		
+
 		<dependency>
 			<groupId>tboxshakur</groupId>
 			<artifactId>standard-message</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-netty-shaded</artifactId>
@@ -118,9 +120,19 @@
 			<version>1.9.5</version>
 			<scope>test</scope>
 		</dependency>
+		<!-- swagger -->
+		<dependency>
+			<groupId>io.springfox</groupId>
+			<artifactId>springfox-swagger2</artifactId>
+			<version>${springfox-swagger.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.springfox</groupId>
+			<artifactId>springfox-swagger-ui</artifactId>
+			<version>${springfox-swagger.version}</version>
+		</dependency>
 	</dependencies>
-
-
 
 	<build>
 		<plugins>

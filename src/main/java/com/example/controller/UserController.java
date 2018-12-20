@@ -1,13 +1,18 @@
 package com.example.controller;
 
 import org.springframework.web.bind.annotation.RestController;
-
 import com.example.StandardUserMessage;
 import com.example.dao.UserDao;
 import com.example.exceptions.MessageValidationException;
 import com.example.grpc.GrpcClient;
 import com.example.user.GetUserRequest;
 import com.example.user.User;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ser.FilterProvider;
+import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
+import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 
@@ -18,7 +23,9 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,7 +38,26 @@ public class UserController {
 	private static final Logger logger = Logger.getLogger(UserController.class.getName());
 
 	/**
-	 * Gets a User
+	 * This method demonstrates sending the protocolbuffer bytes via REST instead of
+	 * GRPC. We will probably not need this.
+	 * 
+	 * @param id
+	 * @return
+	 * @throws InvalidProtocolBufferException
+	 */
+	@GetMapping("/protobuf/user/{id}")
+	public User getUserProtobuf(@PathVariable String id) throws InvalidProtocolBufferException {
+
+		User user = UserDao.getUser(id, null);
+		if (user == null) {
+			throw new IllegalArgumentException(String.format("User %s not found", id));
+		}
+
+		return user;
+	}
+
+	/**
+	 * Gets a User directly from DAO
 	 * 
 	 * @param id
 	 * @return simple json representation of the User protobuf
@@ -43,6 +69,7 @@ public class UserController {
 		if (user == null) {
 			throw new IllegalArgumentException(String.format("User %s not found", id));
 		}
+
 		return JsonFormat.printer().print(user);
 	}
 
