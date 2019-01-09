@@ -15,15 +15,9 @@ public class Application {
 		SpringApplication.run(Application.class, args);
 		GrpcServer.startup();
 	}
-	
-	
+
 	@Bean
-    ProtobufHttpMessageConverter protobufHttpMessageConverter() {
-        return new ProtobufHttpMessageConverter();
-    }
-
-	
-	
-	
-
+	ProtobufHttpMessageConverter protobufHttpMessageConverter() {
+		return new ProtobufHttpMessageConverter();
+	}
 }
